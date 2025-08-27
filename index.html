@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tier表アイコンジェネレーター</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Inter', 'Helvetica Neue', 'Arial', 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Meiryo', 'sans-serif'; }
+        .card-image { transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out; cursor: pointer; }
+        .card-image:hover { transform: scale(1.05); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
+        .selected-card { border: 4px solid #4f46e5; box-shadow: 0 0 15px rgba(79, 70, 229, 0.5); }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <div class="container mx-auto p-4 md:p-8 max-w-6xl">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl md:text-5xl font-bold text-gray-900">Tier表アイコンジェネレーター</h1>
+            <p class="mt-2 text-lg text-gray-600">『あの頃の自作TCG』のカードを検索して、オリジナルのTier表アイコンを作成しよう！</p>
+        </header>
+
+        <main class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div class="space-y-8">
+                <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <h2 class="text-2xl font-bold mb-4">1. 背景のカードを選ぶ</h2>
+                    <input type="text" id="background-search" placeholder="カード名を入力" class="w-full px-4 py-2 mb-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" oninput="searchCard('background')">
+                    <div id="background-results" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-4 h-64 overflow-y-auto bg-gray-50 p-4 rounded-lg border"></div>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <h2 class="text-2xl font-bold mb-4">2. 右下のサブカードを選ぶ</h2>
+                    <input type="text" id="sub-search" placeholder="カード名を入力" class="w-full px-4 py-2 mb-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" oninput="searchCard('sub')">
+                    <div id="sub-results" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-4 h-64 overflow-y-auto bg-gray-50 p-4 rounded-lg border"></div>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-xl shadow-lg flex flex-col items-center justify-center">
+                <h2 class="text-2xl font-bold mb-4">3. アイコンを生成する</h2>
+                <div class="w-full max-w-xs aspect-square bg-gray-200 rounded-lg mb-4 flex items-center justify-center border-2 border-dashed">
+                     <canvas id="canvas" width="512" height="512" class="w-full h-full rounded-lg hidden"></canvas>
+                     <div id="preview-placeholder" class="text-gray-500 text-center p-4">
+                        <p>ここにプレビューが表示されます</p>
+                    </div>
+                </div>
+                <button id="generate-btn" onclick="generateIcon()" class="w-full max-w-xs bg-green-500 text-white font-bold px-6 py-3 rounded-lg hover:bg-green-600 transition-colors text-lg disabled:bg-gray-400 disabled:cursor-not-allowed" disabled>生成する</button>
+                <a id="download-link" class="w-full max-w-xs mt-4 bg-gray-800 text-white text-center font-bold px-6 py-3 rounded-lg hover:bg-gray-900 transition-colors hidden">画像をダウンロード</a>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // ===================================================================================
+        // ▼▼▼ ここに generator.html で生成したカード名リストを貼り付けます ▼▼▼
+        // ===================================================================================
+
+        const cardNames = [
+            // 例:
+            // "炎の剣士",
+            // "ブラック・マジシャン"
+        ];
+        
+        // ===================================================================================
+        // ▲▲▲ ここから上のエリアに貼り付けてください ▲▲▲
+        // ===================================================================================
+
+
+        const IMAGE_FOLDER = 'images';
+        const IMAGE_SUFFIX = '_transparent.png';
+        let selectedBackgroundCard = null;
+        let selectedSubCard = null;
+
+        function getImagePath(name) {
+            return `${IMAGE_FOLDER}/${encodeURIComponent(name)}${IMAGE_SUFFIX}`;
+        }
+        
+        window.onload = function() {
+            if (cardNames.length === 0) {
+                document.getElementById('background-results').innerHTML = '<p class="col-span-full text-center text-red-500">カードリストが空です。`index.html`にカード名リストを貼り付けてください。</p>';
+                document.getElementById('sub-results').innerHTML = '<p class="col-span-full text-center text-red-500">カードリストが空です。`index.html`にカード名リストを貼り付けてください。</p>';
+            } else {
+                displayResults(cardNames, 'background');
+                displayResults(cardNames, 'sub');
+            }
+        };
+
+        function searchCard(type) {
+            const input = document.getElementById(`${type}-search`);
+            const searchTerm = input.value.toLowerCase().trim();
+            const filteredNames = cardNames.filter(name => name.toLowerCase().includes(searchTerm));
+            displayResults(filteredNames, type);
+        }
+
+        function displayResults(names, type) {
+            const resultsContainer = document.getElementById(`${type}-results`);
+            resultsContainer.innerHTML = '';
+
+            if (!names || names.length === 0) {
+                resultsContainer.innerHTML = '<p class="col-span-full text-center text-gray-500">カードが見つかりませんでした。</p>';
+                return;
+            }
+
+            names.forEach(name => {
+                const imagePath = getImagePath(name);
+                const img = document.createElement('img');
+                img.src = imagePath;
+                img.alt = name;
+                img.title = name;
+                img.className = 'w-full h-auto object-cover rounded-md card-image';
+                img.onclick = () => selectCard(imagePath, type, img);
+                
+                img.onerror = function() {
+                    this.onerror=null;
+                    this.src='https://placehold.co/400x400/ef4444/ffffff?text=画像なし';
+                    this.title = `${name} の画像が見つかりません`;
+                    this.style.cursor = 'not-allowed';
+                    this.onclick = null;
+                };
+
+                if ((type === 'background' && imagePath === selectedBackgroundCard) || (type === 'sub' && imagePath === selectedSubCard)) {
+                    img.classList.add('selected-card');
+                }
+                resultsContainer.appendChild(img);
+            });
+        }
+
+        function selectCard(imagePath, type, selectedImgElement) {
+            const resultsContainer = document.getElementById(`${type}-results`);
+            const allImages = resultsContainer.querySelectorAll('img');
+            allImages.forEach(img => img.classList.remove('selected-card'));
+            selectedImgElement.classList.add('selected-card');
+
+            if (type === 'background') {
+                selectedBackgroundCard = imagePath;
+            } else {
+                selectedSubCard = imagePath;
+            }
+            checkIfReadyToGenerate();
+        }
+        
+        function checkIfReadyToGenerate() {
+            const generateBtn = document.getElementById('generate-btn');
+            generateBtn.disabled = !(selectedBackgroundCard && selectedSubCard);
+        }
+
+        function generateIcon() {
+            if (!selectedBackgroundCard || !selectedSubCard) return;
+
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+            const canvasSize = 512;
+            canvas.width = canvasSize;
+            canvas.height = canvasSize;
+
+            document.getElementById('preview-placeholder').classList.add('hidden');
+            canvas.classList.remove('hidden');
+
+            const bgImage = new Image();
+            bgImage.crossOrigin = 'Anonymous';
+            bgImage.src = selectedBackgroundCard;
+
+            bgImage.onload = () => {
+                ctx.drawImage(bgImage, 0, 0, canvasSize, canvasSize);
+                const subImage = new Image();
+                subImage.crossOrigin = 'Anonymous';
+                subImage.src = selectedSubCard;
+                subImage.onload = () => {
+                    const subSize = canvasSize / 5;
+                    const subX = canvasSize - subSize;
+                    const subY = canvasSize - subSize;
+                    ctx.drawImage(subImage, subX, subY, subSize, subSize);
+                    const downloadLink = document.getElementById('download-link');
+                    downloadLink.href = canvas.toDataURL('image/png');
+                    downloadLink.download = 'tier_icon.png';
+                    downloadLink.classList.remove('hidden');
+                };
+            };
+        }
+    </script>
+
+</body>
+</html>
