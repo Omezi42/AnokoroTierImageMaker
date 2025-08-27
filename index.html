@@ -657,8 +657,8 @@
                 subImage.onload = () => {
                     // ▼▼▼ ここからが変更点 ▼▼▼
 
-                    // 1. サブ画像の最大サイズを定義 (キャンバスの2/5)
-                    const maxSubSize = canvasSize * (2 / 5);
+                    // 1. サブ画像の最大サイズを定義 (キャンバスの4/5)
+                    const maxSubSize = canvasSize * (4 / 5); // 2/5 から 4/5 に変更
 
                     // 2. 縦横比を維持した描画サイズを計算
                     const subImgAspectRatio = subImage.width / subImage.height;
