@@ -655,30 +655,24 @@
                 subImage.crossOrigin = 'Anonymous';
                 subImage.src = selectedSubCard;
                 subImage.onload = () => {
-                    // ▼▼▼ ここからが変更点 ▼▼▼
-
-                    // 1. サブ画像の最大サイズを定義 (キャンバスの4/5)
-                    const maxSubSize = canvasSize * (4 / 5); // 2/5 から 4/5 に変更
-
-                    // 2. 縦横比を維持した描画サイズを計算
+                    const maxSubSize = canvasSize * (4 / 5);
                     const subImgAspectRatio = subImage.width / subImage.height;
                     let subDrawWidth = maxSubSize;
                     let subDrawHeight = maxSubSize;
 
-                    if (subImgAspectRatio > 1) { // 画像が横長の場合
+                    if (subImgAspectRatio > 1) {
                         subDrawHeight = maxSubSize / subImgAspectRatio;
-                    } else { // 画像が縦長または正方形の場合
+                    } else {
                         subDrawWidth = maxSubSize * subImgAspectRatio;
                     }
 
-                    // 3. 右下の角を基準に、描画位置を計算
-                    const subX = canvasSize - subDrawWidth;
+                    // ▼▼▼ ここからが変更点 ▼▼▼
+                    // 描画開始位置を調整し、画像を右にはみ出させる
+                    const subX = canvasSize - (subDrawWidth * (2/3));
                     const subY = canvasSize - subDrawHeight;
-                    
-                    // 4. 計算したサイズと位置でサブ画像を描画
-                    ctx.drawImage(subImage, subX, subY, subDrawWidth, subDrawHeight);
-                    
                     // ▲▲▲ ここまでが変更点 ▲▲▲
+                    
+                    ctx.drawImage(subImage, subX, subY, subDrawWidth, subDrawHeight);
                     
                     const downloadLink = document.getElementById('download-link');
                     downloadLink.href = canvas.toDataURL('image/png');
