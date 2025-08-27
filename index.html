@@ -36,7 +36,7 @@
 
             <div class="bg-white p-6 rounded-xl shadow-lg flex flex-col items-center justify-center">
                 <h2 class="text-2xl font-bold mb-4">3. アイコンを生成する</h2>
-                <div class="w-full max-w-xs aspect-square bg-gray-200 rounded-lg mb-4 flex items-center justify-center border-2 border-dashed">
+                <div class="w-full max-w-xs aspect-square bg-gray-900 rounded-lg mb-4 flex items-center justify-center border-2 border-dashed border-gray-300">
                      <canvas id="canvas" width="512" height="512" class="w-full h-full rounded-lg hidden"></canvas>
                      <div id="preview-placeholder" class="text-gray-500 text-center p-4">
                         <p>ここにプレビューが表示されます</p>
@@ -53,7 +53,7 @@
         // ▼▼▼ ここに generator.html で生成したカード名リストを貼り付けます ▼▼▼
         // ===================================================================================
 
-        const cardNames = [
+const cardNames = [
     "おちゃめな魔法使い（プロモ）",
     "かたい貝",
     "かにもぐら先輩",
@@ -630,7 +630,32 @@
             bgImage.src = selectedBackgroundCard;
 
             bgImage.onload = () => {
-                ctx.drawImage(bgImage, 0, 0, canvasSize, canvasSize);
+                // ▼▼▼ ここからが変更点 ▼▼▼
+                
+                // 1. 背景を黒で塗りつぶす
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(0, 0, canvasSize, canvasSize);
+
+                // 2. 縦横比を維持した描画サイズと位置を計算
+                const imgAspectRatio = bgImage.width / bgImage.height;
+                let drawWidth = canvasSize;
+                let drawHeight = canvasSize;
+                let x = 0;
+                let y = 0;
+
+                if (imgAspectRatio > 1) { // 画像が横長の場合
+                    drawHeight = canvasSize / imgAspectRatio;
+                    y = (canvasSize - drawHeight) / 2;
+                } else { // 画像が縦長または正方形の場合
+                    drawWidth = canvasSize * imgAspectRatio;
+                    x = (canvasSize - drawWidth) / 2;
+                }
+
+                // 3. 計算したサイズと位置で背景画像を描画
+                ctx.drawImage(bgImage, x, y, drawWidth, drawHeight);
+
+                // ▲▲▲ ここまでが変更点 ▲▲▲
+
                 const subImage = new Image();
                 subImage.crossOrigin = 'Anonymous';
                 subImage.src = selectedSubCard;
